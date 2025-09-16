@@ -4,6 +4,7 @@ const paletteContainer = document.querySelector('.palette-container');
 btn.addEventListener('click', generatePalette);
 
 paletteContainer.addEventListener('click', function(e) {
+    // Copy color
     if (e.target.classList.contains('copy-btn')) {
         const colorInfo = e.target.closest('.color-info');
         const hexValue = colorInfo.querySelector('.hex-value').textContent.trim();
@@ -11,14 +12,32 @@ paletteContainer.addEventListener('click', function(e) {
             .then(() => showCopySuccess(e.target))
             .catch(err => console.error('Failed to copy: ', err));
     }
-});
-function generatePalette() 
-{
-    const colors = [];
-    for (let i = 0; i < 5; i++) 
-    {
-        colors.push(generateRandomColor());
+    // Lock/unlock color
+    if (e.target.classList.contains('lock-btn')) {
+        e.target.classList.toggle('locked');
+        if (e.target.classList.contains('locked')) {
+            e.target.classList.remove('fa-lock-open');
+            e.target.classList.add('fa-lock');
+            e.target.title = 'Unlock color';
+        } else {
+            e.target.classList.remove('fa-lock');
+            e.target.classList.add('fa-lock-open');
+            e.target.title = 'Lock color';
+        }
     }
+});
+function generatePalette() {
+    const colorBoxes = document.querySelectorAll('.color-box');
+    const colors = [];
+    colorBoxes.forEach((box, i) => {
+        const lockBtn = box.querySelector('.lock-btn');
+        const hexValue = box.querySelector('.hex-value').textContent.trim();
+        if (lockBtn.classList.contains('locked')) {
+            colors.push(hexValue);
+        } else {
+            colors.push(generateRandomColor());
+        }
+    });
     updatePalette(colors);
 }
 

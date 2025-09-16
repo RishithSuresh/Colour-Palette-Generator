@@ -115,6 +115,20 @@ h1::after {
     color: #333;
 }
 
+
+.lock-btn {
+    color: #bdbdbd;
+    cursor: pointer;
+    margin-right: 0.7rem;
+    transition: color 0.3s ease;
+}
+.lock-btn.locked {
+    color: #f7b731;
+}
+.lock-btn:hover {
+    color: #f7b731;
+}
+
 .copy-btn {
     color: #8296ef;
     cursor: pointer;
