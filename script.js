@@ -104,7 +104,7 @@ moodSelect.addEventListener('change', function() {
 applyBtn.addEventListener('click', function() {
     const mood = moodSelect.value;
     if (mood && recommendedPalettes[mood]) {
-        updatePalette(recommendedPalettes[mood][currentMoodVariation]);
+        updatePaletteWithHistory(recommendedPalettes[mood][currentMoodVariation]);
     }
 });
 
@@ -139,7 +139,7 @@ generateHarmonyBtn.addEventListener('click', function() {
     const baseColor = baseColorInput.value;
     const harmonyType = harmonyTypeSelect.value;
     const harmonyColors = generateColorHarmony(baseColor, harmonyType);
-    updatePalette(harmonyColors);
+    updatePaletteWithHistory(harmonyColors);
 });
 
 // Main palette event listeners
@@ -189,7 +189,7 @@ function generateRandomPalette() {
             colors.push(generateRandomColor());
         }
     });
-    updatePalette(colors);
+    updatePaletteWithHistory(colors);
 }
 
 // Color generation functions
@@ -258,7 +258,7 @@ function generateGradientPalette() {
         colors.push(interpolateColor(startColor, endColor, ratio));
     }
 
-    updatePalette(colors);
+    updatePaletteWithHistory(colors);
 }
 
 function adjustBrightness() {
@@ -278,7 +278,7 @@ function adjustBrightness() {
         }
     });
 
-    updatePalette(colors);
+    updatePaletteWithHistory(colors);
 }
 
 // Color utility functions
@@ -565,235 +565,177 @@ function generateColorName(hexColor) {
     return name;
 }
 
-// Color Accessibility Checker
-function getContrastRatio(color1, color2) {
-    const getLuminance = (hex) => {
-        const rgb = [
-            parseInt(hex.slice(1, 3), 16),
-            parseInt(hex.slice(3, 5), 16),
-            parseInt(hex.slice(5, 7), 16)
-        ].map(c => {
-            c = c / 255;
-            return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-        });
-        return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+// Palette History Feature
+let paletteHistory = JSON.parse(localStorage.getItem('paletteHistory')) || [];
+const maxHistoryItems = 10;
+
+function addToHistory(colors) {
+    const timestamp = new Date().toLocaleString();
+    const historyItem = {
+        id: Date.now(),
+        colors: [...colors],
+        timestamp: timestamp
     };
 
-    const lum1 = getLuminance(color1);
-    const lum2 = getLuminance(color2);
-    const brightest = Math.max(lum1, lum2);
-    const darkest = Math.min(lum1, lum2);
+    // Remove duplicates and add to beginning
+    paletteHistory = paletteHistory.filter(item =>
+        !arraysEqual(item.colors, colors)
+    );
+    paletteHistory.unshift(historyItem);
 
-    return (brightest + 0.05) / (darkest + 0.05);
-}
-
-function getAccessibilityRating(ratio) {
-    if (ratio >= 7) return { level: 'AAA', text: 'Excellent', class: 'excellent' };
-    if (ratio >= 4.5) return { level: 'AA', text: 'Good', class: 'good' };
-    if (ratio >= 3) return { level: 'A', text: 'Fair', class: 'fair' };
-    return { level: 'FAIL', text: 'Poor', class: 'poor' };
-}
-
-function simulateColorBlindness(hex, type) {
-    const rgb = [
-        parseInt(hex.slice(1, 3), 16),
-        parseInt(hex.slice(3, 5), 16),
-        parseInt(hex.slice(5, 7), 16)
-    ];
-
-    let newRgb = [...rgb];
-
-    switch (type) {
-        case 'protanopia': // Red-blind
-            newRgb[0] = 0.567 * rgb[0] + 0.433 * rgb[1];
-            newRgb[1] = 0.558 * rgb[0] + 0.442 * rgb[1];
-            break;
-        case 'deuteranopia': // Green-blind
-            newRgb[0] = 0.625 * rgb[0] + 0.375 * rgb[1];
-            newRgb[1] = 0.7 * rgb[0] + 0.3 * rgb[1];
-            break;
-        case 'tritanopia': // Blue-blind
-            newRgb[1] = 0.95 * rgb[1] + 0.05 * rgb[2];
-            newRgb[2] = 0.433 * rgb[1] + 0.567 * rgb[2];
-            break;
+    // Keep only the last maxHistoryItems
+    if (paletteHistory.length > maxHistoryItems) {
+        paletteHistory = paletteHistory.slice(0, maxHistoryItems);
     }
 
-    return `#${newRgb.map(c => Math.round(Math.max(0, Math.min(255, c))).toString(16).padStart(2, '0')).join('')}`;
+    localStorage.setItem('paletteHistory', JSON.stringify(paletteHistory));
+    displayPaletteHistory();
+}
+
+function arraysEqual(a, b) {
+    return a.length === b.length && a.every((val, i) => val === b[i]);
+}
+
+function displayPaletteHistory() {
+    const container = document.getElementById('palette-history');
+    container.innerHTML = '';
+
+    if (paletteHistory.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); font-style: italic; text-align: center; padding: 2rem;">No palette history yet. Generate some palettes to see them here!</p>';
+        return;
+    }
+
+    paletteHistory.forEach(item => {
+        const historyItem = document.createElement('div');
+        historyItem.className = 'history-item';
+        historyItem.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            margin: 0.8rem 0;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        `;
+
+        const colorsPreview = document.createElement('div');
+        colorsPreview.style.cssText = 'display: flex; gap: 3px; flex-shrink: 0;';
+        item.colors.forEach(color => {
+            const colorDiv = document.createElement('div');
+            colorDiv.style.cssText = `
+                width: 25px;
+                height: 25px;
+                background-color: ${color};
+                border-radius: 4px;
+                border: 1px solid var(--glass-border);
+            `;
+            colorsPreview.appendChild(colorDiv);
+        });
+
+        const info = document.createElement('div');
+        info.style.cssText = 'flex-grow: 1; color: var(--text-primary);';
+        info.innerHTML = `
+            <div style="font-weight: 600; color: var(--neon-cyan); font-family: 'Rajdhani', sans-serif;">
+                Palette #${paletteHistory.indexOf(item) + 1}
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                ${item.timestamp}
+            </div>
+        `;
+
+        const loadBtn = document.createElement('button');
+        loadBtn.textContent = 'Load';
+        loadBtn.className = 'btn';
+        loadBtn.style.cssText = 'padding: 0.4rem 1rem; font-size: 0.9rem; flex-shrink: 0;';
+        loadBtn.onclick = (e) => {
+            e.stopPropagation();
+            updatePalette(item.colors);
+        };
+
+        historyItem.appendChild(colorsPreview);
+        historyItem.appendChild(info);
+        historyItem.appendChild(loadBtn);
+
+        // Add hover effects
+        historyItem.addEventListener('mouseenter', () => {
+            historyItem.style.borderColor = 'var(--neon-cyan)';
+            historyItem.style.transform = 'translateY(-2px)';
+            historyItem.style.boxShadow = '0 8px 25px rgba(0, 255, 255, 0.2)';
+        });
+
+        historyItem.addEventListener('mouseleave', () => {
+            historyItem.style.borderColor = 'var(--glass-border)';
+            historyItem.style.transform = 'translateY(0)';
+            historyItem.style.boxShadow = 'none';
+        });
+
+        // Click to load palette
+        historyItem.addEventListener('click', () => {
+            updatePalette(item.colors);
+        });
+
+        container.appendChild(historyItem);
+    });
+}
+
+function clearPaletteHistory() {
+    if (confirm('Are you sure you want to clear your palette history?')) {
+        paletteHistory = [];
+        localStorage.removeItem('paletteHistory');
+        displayPaletteHistory();
+    }
 }
 
 // Add event listeners for new features
 document.addEventListener('DOMContentLoaded', function() {
     displaySavedPalettes();
+    displayPaletteHistory();
     generateRandomPalette();
 
     // Add color name generation toggle
     document.getElementById('toggle-names').addEventListener('click', toggleColorNames);
-    document.getElementById('check-accessibility').addEventListener('click', checkAccessibility);
-    document.getElementById('colorblind-sim').addEventListener('change', simulateColorblindness);
+    document.getElementById('clear-history').addEventListener('click', clearPaletteHistory);
 });
 
 function toggleColorNames() {
     const colorBoxes = mainPalette.querySelectorAll('.color-box');
+    const toggleBtn = document.getElementById('toggle-names');
+
     colorBoxes.forEach(box => {
         const hexValue = box.querySelector('.hex-value').textContent.trim();
         const nameElement = box.querySelector('.color-name');
 
         if (nameElement) {
             nameElement.remove();
+            toggleBtn.innerHTML = '🎯 Generate Creative Names';
         } else {
             const colorName = generateColorName(hexValue);
             const nameDiv = document.createElement('div');
             nameDiv.className = 'color-name';
             nameDiv.textContent = colorName;
             nameDiv.style.cssText = `
-                font-size: 0.8rem;
-                color: #666;
-                font-style: italic;
-                margin-top: 0.3rem;
+                font-family: 'Rajdhani', sans-serif;
+                font-size: 0.85rem;
+                color: var(--neon-pink);
+                font-weight: 500;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                margin-top: 0.5rem;
                 text-align: center;
+                text-shadow: 0 0 10px rgba(255, 0, 128, 0.5);
             `;
             box.querySelector('.color-info').appendChild(nameDiv);
+            toggleBtn.innerHTML = '❌ Hide Names';
         }
     });
 }
 
-function checkAccessibility() {
-    const colors = getCurrentPalette();
-    const modal = createAccessibilityModal(colors);
-    document.body.appendChild(modal);
-}
-
-function createAccessibilityModal(colors) {
-    const modal = document.createElement('div');
-    modal.className = 'accessibility-modal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.8);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-    `;
-
-    const content = document.createElement('div');
-    content.style.cssText = `
-        background: white;
-        padding: 2rem;
-        border-radius: 1rem;
-        max-width: 600px;
-        max-height: 80vh;
-        overflow-y: auto;
-        position: relative;
-    `;
-
-    let html = '<h3>🔍 Accessibility Analysis</h3>';
-
-    // Check all color combinations
-    for (let i = 0; i < colors.length; i++) {
-        for (let j = i + 1; j < colors.length; j++) {
-            const ratio = getContrastRatio(colors[i], colors[j]);
-            const rating = getAccessibilityRating(ratio);
-
-            html += `
-                <div style="display: flex; align-items: center; margin: 1rem 0; padding: 0.5rem; border-radius: 8px; background: #f8f9fa;">
-                    <div style="width: 30px; height: 30px; background: ${colors[i]}; border-radius: 50%; margin-right: 0.5rem;"></div>
-                    <div style="width: 30px; height: 30px; background: ${colors[j]}; border-radius: 50%; margin-right: 1rem;"></div>
-                    <div>
-                        <strong>Ratio: ${ratio.toFixed(2)}</strong><br>
-                        <span class="rating-${rating.class}">${rating.level} - ${rating.text}</span>
-                    </div>
-                </div>
-            `;
-        }
-    }
-
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = '✕';
-    closeBtn.style.cssText = `
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-        background: none;
-        border: none;
-        font-size: 1.5rem;
-        cursor: pointer;
-    `;
-    closeBtn.onclick = () => modal.remove();
-
-    content.innerHTML = html;
-    content.appendChild(closeBtn);
-    modal.appendChild(content);
-
-    return modal;
-}
-
-function simulateColorblindness() {
-    const type = document.getElementById('colorblind-sim').value;
-    if (!type) return;
-
-    const colorBoxes = mainPalette.querySelectorAll('.color-box');
-    colorBoxes.forEach(box => {
-        const originalColor = box.querySelector('.hex-value').textContent.trim();
-        const simulatedColor = simulateColorBlindness(originalColor, type);
-        const colorDiv = box.querySelector('.color');
-
-        // Store original color if not already stored
-        if (!colorDiv.dataset.original) {
-            colorDiv.dataset.original = originalColor;
-        }
-
-        colorDiv.style.backgroundColor = simulatedColor;
-
-        // Add simulation indicator
-        let indicator = box.querySelector('.sim-indicator');
-        if (!indicator) {
-            indicator = document.createElement('div');
-            indicator.className = 'sim-indicator';
-            indicator.style.cssText = `
-                position: absolute;
-                top: 5px;
-                right: 5px;
-                background: rgba(255,255,255,0.9);
-                padding: 2px 6px;
-                border-radius: 10px;
-                font-size: 0.7rem;
-                font-weight: bold;
-            `;
-            box.querySelector('.color').style.position = 'relative';
-            box.querySelector('.color').appendChild(indicator);
-        }
-        indicator.textContent = type.toUpperCase();
-    });
-
-    // Add reset button
-    if (!document.getElementById('reset-simulation')) {
-        const resetBtn = document.createElement('button');
-        resetBtn.id = 'reset-simulation';
-        resetBtn.textContent = 'Reset Simulation';
-        resetBtn.className = 'btn';
-        resetBtn.onclick = resetColorblindSimulation;
-        document.getElementById('colorblind-sim').parentNode.appendChild(resetBtn);
-    }
-}
-
-function resetColorblindSimulation() {
-    const colorBoxes = mainPalette.querySelectorAll('.color-box');
-    colorBoxes.forEach(box => {
-        const colorDiv = box.querySelector('.color');
-        if (colorDiv.dataset.original) {
-            colorDiv.style.backgroundColor = colorDiv.dataset.original;
-            delete colorDiv.dataset.original;
-        }
-
-        const indicator = box.querySelector('.sim-indicator');
-        if (indicator) indicator.remove();
-    });
-
-    document.getElementById('colorblind-sim').value = '';
-    const resetBtn = document.getElementById('reset-simulation');
-    if (resetBtn) resetBtn.remove();
+// Update palette function to add to history
+function updatePaletteWithHistory(colors) {
+    updatePalette(colors);
+    addToHistory(colors);
 }

@@ -45,13 +45,11 @@ Generate palettes based on **color theory principles**:
 - **Tetradic** - Four colors forming a rectangle
 - **Monochromatic** - Variations of a single hue
 
-### ♿ **Accessibility Features**
-- **🔍 WCAG Compliance Checker** - Test color combinations for accessibility standards
-- **👁️ Colorblind Simulation** - Preview palettes as seen by colorblind users
-  - Protanopia (Red-blind)
-  - Deuteranopia (Green-blind)
-  - Tritanopia (Blue-blind)
-- **Contrast Ratio Analysis** - Detailed accessibility ratings (AAA, AA, A, FAIL)
+### 📚 **Palette History**
+- **🕒 Recent Palettes** - Automatically track your last 10 generated palettes
+- **Quick Access** - Click any history item to instantly load that palette
+- **Smart Deduplication** - Prevents duplicate palettes in history
+- **One-Click Clear** - Easy history management
 
 ### 💾 **Export & Import System**
 - **Save Palettes** - Store favorite palettes locally
@@ -141,14 +139,15 @@ Simply open `index.html` in any modern web browser!
 3. Click **"Generate Harmony"** for theory-based palettes
 
 ### **AI Color Names**
-1. Click **"Generate Creative Names"** 
+1. Click **"Generate Creative Names"**
 2. View unique AI-generated names for each color
-3. Click again to toggle names on/off
+3. Click **"Hide Names"** to toggle names off
 
-### **Accessibility Testing**
-1. Click **"Check WCAG Compliance"** for detailed analysis
-2. Use colorblind simulation dropdown to test visibility
-3. Review contrast ratios and accessibility ratings
+### **Palette History**
+1. Generate palettes using any method
+2. View your recent palettes in the History section
+3. Click any history item to instantly load that palette
+4. Use **"Clear History"** to reset your history
 
 ### **Save & Export**
 1. Click **"Save Current Palette"** to store locally

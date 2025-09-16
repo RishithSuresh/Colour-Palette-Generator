@@ -70,24 +70,16 @@
             </div>
         </div>
 
-        <!-- Accessibility Checker Section -->
+        <!-- Palette History Section -->
         <div class="section">
-            <h3><i class="fas fa-universal-access"></i> Accessibility Checker</h3>
-            <div class="accessibility-controls">
-                <button id="check-accessibility" class="btn">🔍 Check WCAG Compliance</button>
-                <div class="colorblind-wrapper">
-                    <label for="colorblind-sim">Colorblind Simulation:</label>
-                    <select id="colorblind-sim" class="mood-select">
-                        <option value="">Normal Vision</option>
-                        <option value="protanopia">Protanopia (Red-blind)</option>
-                        <option value="deuteranopia">Deuteranopia (Green-blind)</option>
-                        <option value="tritanopia">Tritanopia (Blue-blind)</option>
-                    </select>
-                </div>
-                <p style="color: #666; font-size: 0.9rem; margin-top: 0.5rem;">
-                    Test your palette for accessibility compliance and colorblind-friendly design
+            <h3><i class="fas fa-history"></i> Palette History</h3>
+            <div class="history-controls">
+                <button id="clear-history" class="btn">�️ Clear History</button>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
+                    Quickly access your recently generated palettes
                 </p>
             </div>
+            <div id="palette-history" class="history-container"></div>
         </div>
         <!-- Export/Import Section -->
         <div class="section">
