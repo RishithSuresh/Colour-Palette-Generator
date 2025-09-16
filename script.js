@@ -535,10 +535,265 @@ function displaySavedPalettes() {
     });
 }
 
-// Initialize the app
+// AI Color Name Generator
+const colorNames = {
+    prefixes: ['Mystic', 'Cosmic', 'Ethereal', 'Velvet', 'Crystal', 'Shadow', 'Neon', 'Electric', 'Dreamy', 'Vintage', 'Royal', 'Ocean', 'Forest', 'Desert', 'Arctic', 'Tropical', 'Urban', 'Retro', 'Futuristic', 'Enchanted'],
+    bases: ['Azure', 'Crimson', 'Emerald', 'Amber', 'Violet', 'Coral', 'Indigo', 'Scarlet', 'Turquoise', 'Magenta', 'Chartreuse', 'Burgundy', 'Teal', 'Lavender', 'Peach', 'Mint', 'Rose', 'Gold', 'Silver', 'Bronze'],
+    suffixes: ['Mist', 'Glow', 'Shimmer', 'Whisper', 'Dream', 'Burst', 'Flame', 'Frost', 'Storm', 'Breeze', 'Dawn', 'Dusk', 'Echo', 'Pulse', 'Vibe', 'Aura', 'Spark', 'Bloom', 'Tide', 'Haze']
+};
+
+function generateColorName(hexColor) {
+    const hsl = hexToHsl(hexColor);
+    const prefix = colorNames.prefixes[Math.floor(Math.random() * colorNames.prefixes.length)];
+    const base = colorNames.bases[Math.floor(Math.random() * colorNames.bases.length)];
+    const suffix = colorNames.suffixes[Math.floor(Math.random() * colorNames.suffixes.length)];
+
+    // Add some logic based on color properties
+    let name = '';
+    if (hsl.l > 80) {
+        name = `Light ${base} ${suffix}`;
+    } else if (hsl.l < 20) {
+        name = `Dark ${base} ${suffix}`;
+    } else if (hsl.s > 80) {
+        name = `Vibrant ${base} ${suffix}`;
+    } else if (hsl.s < 30) {
+        name = `Muted ${base} ${suffix}`;
+    } else {
+        name = `${prefix} ${base} ${suffix}`;
+    }
+
+    return name;
+}
+
+// Color Accessibility Checker
+function getContrastRatio(color1, color2) {
+    const getLuminance = (hex) => {
+        const rgb = [
+            parseInt(hex.slice(1, 3), 16),
+            parseInt(hex.slice(3, 5), 16),
+            parseInt(hex.slice(5, 7), 16)
+        ].map(c => {
+            c = c / 255;
+            return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+        });
+        return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+    };
+
+    const lum1 = getLuminance(color1);
+    const lum2 = getLuminance(color2);
+    const brightest = Math.max(lum1, lum2);
+    const darkest = Math.min(lum1, lum2);
+
+    return (brightest + 0.05) / (darkest + 0.05);
+}
+
+function getAccessibilityRating(ratio) {
+    if (ratio >= 7) return { level: 'AAA', text: 'Excellent', class: 'excellent' };
+    if (ratio >= 4.5) return { level: 'AA', text: 'Good', class: 'good' };
+    if (ratio >= 3) return { level: 'A', text: 'Fair', class: 'fair' };
+    return { level: 'FAIL', text: 'Poor', class: 'poor' };
+}
+
+function simulateColorBlindness(hex, type) {
+    const rgb = [
+        parseInt(hex.slice(1, 3), 16),
+        parseInt(hex.slice(3, 5), 16),
+        parseInt(hex.slice(5, 7), 16)
+    ];
+
+    let newRgb = [...rgb];
+
+    switch (type) {
+        case 'protanopia': // Red-blind
+            newRgb[0] = 0.567 * rgb[0] + 0.433 * rgb[1];
+            newRgb[1] = 0.558 * rgb[0] + 0.442 * rgb[1];
+            break;
+        case 'deuteranopia': // Green-blind
+            newRgb[0] = 0.625 * rgb[0] + 0.375 * rgb[1];
+            newRgb[1] = 0.7 * rgb[0] + 0.3 * rgb[1];
+            break;
+        case 'tritanopia': // Blue-blind
+            newRgb[1] = 0.95 * rgb[1] + 0.05 * rgb[2];
+            newRgb[2] = 0.433 * rgb[1] + 0.567 * rgb[2];
+            break;
+    }
+
+    return `#${newRgb.map(c => Math.round(Math.max(0, Math.min(255, c))).toString(16).padStart(2, '0')).join('')}`;
+}
+
+// Add event listeners for new features
 document.addEventListener('DOMContentLoaded', function() {
     displaySavedPalettes();
-
-    // Generate initial random palette
     generateRandomPalette();
+
+    // Add color name generation toggle
+    document.getElementById('toggle-names').addEventListener('click', toggleColorNames);
+    document.getElementById('check-accessibility').addEventListener('click', checkAccessibility);
+    document.getElementById('colorblind-sim').addEventListener('change', simulateColorblindness);
 });
+
+function toggleColorNames() {
+    const colorBoxes = mainPalette.querySelectorAll('.color-box');
+    colorBoxes.forEach(box => {
+        const hexValue = box.querySelector('.hex-value').textContent.trim();
+        const nameElement = box.querySelector('.color-name');
+
+        if (nameElement) {
+            nameElement.remove();
+        } else {
+            const colorName = generateColorName(hexValue);
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'color-name';
+            nameDiv.textContent = colorName;
+            nameDiv.style.cssText = `
+                font-size: 0.8rem;
+                color: #666;
+                font-style: italic;
+                margin-top: 0.3rem;
+                text-align: center;
+            `;
+            box.querySelector('.color-info').appendChild(nameDiv);
+        }
+    });
+}
+
+function checkAccessibility() {
+    const colors = getCurrentPalette();
+    const modal = createAccessibilityModal(colors);
+    document.body.appendChild(modal);
+}
+
+function createAccessibilityModal(colors) {
+    const modal = document.createElement('div');
+    modal.className = 'accessibility-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    `;
+
+    const content = document.createElement('div');
+    content.style.cssText = `
+        background: white;
+        padding: 2rem;
+        border-radius: 1rem;
+        max-width: 600px;
+        max-height: 80vh;
+        overflow-y: auto;
+        position: relative;
+    `;
+
+    let html = '<h3>🔍 Accessibility Analysis</h3>';
+
+    // Check all color combinations
+    for (let i = 0; i < colors.length; i++) {
+        for (let j = i + 1; j < colors.length; j++) {
+            const ratio = getContrastRatio(colors[i], colors[j]);
+            const rating = getAccessibilityRating(ratio);
+
+            html += `
+                <div style="display: flex; align-items: center; margin: 1rem 0; padding: 0.5rem; border-radius: 8px; background: #f8f9fa;">
+                    <div style="width: 30px; height: 30px; background: ${colors[i]}; border-radius: 50%; margin-right: 0.5rem;"></div>
+                    <div style="width: 30px; height: 30px; background: ${colors[j]}; border-radius: 50%; margin-right: 1rem;"></div>
+                    <div>
+                        <strong>Ratio: ${ratio.toFixed(2)}</strong><br>
+                        <span class="rating-${rating.class}">${rating.level} - ${rating.text}</span>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕';
+    closeBtn.style.cssText = `
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+    `;
+    closeBtn.onclick = () => modal.remove();
+
+    content.innerHTML = html;
+    content.appendChild(closeBtn);
+    modal.appendChild(content);
+
+    return modal;
+}
+
+function simulateColorblindness() {
+    const type = document.getElementById('colorblind-sim').value;
+    if (!type) return;
+
+    const colorBoxes = mainPalette.querySelectorAll('.color-box');
+    colorBoxes.forEach(box => {
+        const originalColor = box.querySelector('.hex-value').textContent.trim();
+        const simulatedColor = simulateColorBlindness(originalColor, type);
+        const colorDiv = box.querySelector('.color');
+
+        // Store original color if not already stored
+        if (!colorDiv.dataset.original) {
+            colorDiv.dataset.original = originalColor;
+        }
+
+        colorDiv.style.backgroundColor = simulatedColor;
+
+        // Add simulation indicator
+        let indicator = box.querySelector('.sim-indicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.className = 'sim-indicator';
+            indicator.style.cssText = `
+                position: absolute;
+                top: 5px;
+                right: 5px;
+                background: rgba(255,255,255,0.9);
+                padding: 2px 6px;
+                border-radius: 10px;
+                font-size: 0.7rem;
+                font-weight: bold;
+            `;
+            box.querySelector('.color').style.position = 'relative';
+            box.querySelector('.color').appendChild(indicator);
+        }
+        indicator.textContent = type.toUpperCase();
+    });
+
+    // Add reset button
+    if (!document.getElementById('reset-simulation')) {
+        const resetBtn = document.createElement('button');
+        resetBtn.id = 'reset-simulation';
+        resetBtn.textContent = 'Reset Simulation';
+        resetBtn.className = 'btn';
+        resetBtn.onclick = resetColorblindSimulation;
+        document.getElementById('colorblind-sim').parentNode.appendChild(resetBtn);
+    }
+}
+
+function resetColorblindSimulation() {
+    const colorBoxes = mainPalette.querySelectorAll('.color-box');
+    colorBoxes.forEach(box => {
+        const colorDiv = box.querySelector('.color');
+        if (colorDiv.dataset.original) {
+            colorDiv.style.backgroundColor = colorDiv.dataset.original;
+            delete colorDiv.dataset.original;
+        }
+
+        const indicator = box.querySelector('.sim-indicator');
+        if (indicator) indicator.remove();
+    });
+
+    document.getElementById('colorblind-sim').value = '';
+    const resetBtn = document.getElementById('reset-simulation');
+    if (resetBtn) resetBtn.remove();
+}
