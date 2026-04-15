@@ -25,13 +25,7 @@
 
 body {
     font-family: 'Rajdhani', sans-serif;
-    background: var(--dark-bg);
-    background-image:
-        radial-gradient(circle at 20% 80%, var(--neon-cyan) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, var(--neon-pink) 0%, transparent 50%),
-        radial-gradient(circle at 40% 40%, var(--neon-purple) 0%, transparent 50%),
-        linear-gradient(45deg, var(--darker-bg) 0%, var(--dark-bg) 100%);
-    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+    background: linear-gradient(135deg, #1a1f2e 0%, #16213e 50%, #0f3460 100%);
     background-attachment: fixed;
     min-height: 100vh;
     display: flex;
@@ -44,7 +38,7 @@ body {
     position: relative;
 }
 
-/* Animated Grid Background */
+/* Subtle Professional Gradient Accent */
 body::before {
     content: '';
     position: fixed;
@@ -53,20 +47,14 @@ body::before {
     width: 100%;
     height: 100%;
     background-image:
-        linear-gradient(var(--grid-color) 1px, transparent 1px),
-        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-    background-size: 50px 50px;
-    animation: gridMove 20s linear infinite;
+        radial-gradient(circle at 20% 50%, rgba(100, 200, 255, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(100, 150, 255, 0.04) 0%, transparent 50%);
+    background-size: 100% 100%;
     z-index: -1;
-    opacity: 0.3;
+    opacity: 0.5;
 }
 
-@keyframes gridMove {
-    0% { transform: translate(0, 0); }
-    100% { transform: translate(50px, 50px); }
-}
-
-/* Floating Particles */
+/* Professional Background Enhancement */
 body::after {
     content: '';
     position: fixed;
@@ -74,20 +62,8 @@ body::after {
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(2px 2px at 20px 30px, var(--neon-cyan), transparent),
-                radial-gradient(2px 2px at 40px 70px, var(--neon-pink), transparent),
-                radial-gradient(1px 1px at 90px 40px, var(--neon-green), transparent),
-                radial-gradient(1px 1px at 130px 80px, var(--neon-yellow), transparent);
-    background-repeat: repeat;
-    background-size: 200px 200px;
-    animation: particleFloat 15s ease-in-out infinite;
+    background: transparent;
     z-index: -1;
-    opacity: 0.4;
-}
-
-@keyframes particleFloat {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    50% { transform: translateY(-20px) rotate(180deg); }
 }
 
 .container {
