@@ -739,3 +739,478 @@ function updatePaletteWithHistory(colors) {
     updatePalette(colors);
     addToHistory(colors);
 }
+
+/* ========== POWERFUL NEW FEATURES ========== */
+
+// ========== UNDO/REDO SYSTEM ==========
+let undoStack = [];
+let redoStack = [];
+const MAX_HISTORY_SIZE = 50;
+
+function pushToUndoStack() {
+    const currentPalette = getCurrentPalette();
+    undoStack.push(currentPalette);
+    redoStack = []; // Clear redo stack on new action
+    
+    if (undoStack.length > MAX_HISTORY_SIZE) {
+        undoStack.shift();
+    }
+    updateUndoRedoButtons();
+}
+
+function undo() {
+    if (undoStack.length > 0) {
+        const currentPalette = getCurrentPalette();
+        redoStack.push(currentPalette);
+        const previousPalette = undoStack.pop();
+        updatePalette(previousPalette);
+        updateUndoRedoButtons();
+    }
+}
+
+function redo() {
+    if (redoStack.length > 0) {
+        const currentPalette = getCurrentPalette();
+        undoStack.push(currentPalette);
+        const nextPalette = redoStack.pop();
+        updatePalette(nextPalette);
+        updateUndoRedoButtons();
+    }
+}
+
+function updateUndoRedoButtons() {
+    const undoBtn = document.getElementById('undo-btn');
+    const redoBtn = document.getElementById('redo-btn');
+    const indicator = document.getElementById('undo-indicator');
+    
+    if (undoBtn && redoBtn) {
+        undoBtn.disabled = undoStack.length === 0;
+        redoBtn.disabled = redoStack.length === 0;
+    }
+    
+    if (indicator) {
+        indicator.textContent = `Undo: ${undoStack.length} | Redo: ${redoStack.length}`;
+    }
+}
+
+document.getElementById('undo-btn')?.addEventListener('click', undo);
+document.getElementById('redo-btn')?.addEventListener('click', redo);
+document.getElementById('reset-palette')?.addEventListener('click', () => {
+    pushToUndoStack();
+    generateRandomPalette();
+});
+
+// Capture state whenever palette updates
+const originalUpdatePalette = updatePalette;
+updatePalette = function(colors) {
+    pushToUndoStack();
+    originalUpdatePalette(colors);
+};
+
+// ========== ADVANCED COLOR CONTROLS ==========
+const colorSliders = {
+    hue: document.getElementById('hue-slider'),
+    saturation: document.getElementById('saturation-slider'),
+    lightness: document.getElementById('lightness-slider')
+};
+
+const colorValues = {
+    hue: document.getElementById('hue-value'),
+    saturation: document.getElementById('saturation-value'),
+    lightness: document.getElementById('lightness-value')
+};
+
+// Initialize color select dropdown
+function initializeColorSelect() {
+    const select = document.getElementById('color-select');
+    const colorBoxes = mainPalette.querySelectorAll('.color-box');
+    select.innerHTML = '';
+    colorBoxes.forEach((box, index) => {
+        const hex = box.querySelector('.hex-value').textContent;
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = `Color ${index + 1} - ${hex}`;
+        select.appendChild(option);
+    });
+}
+
+function updateSliderValues() {
+    const selectIndex = document.getElementById('color-select')?.value || 0;
+    const colorHex = getCurrentPalette()[selectIndex];
+    const hsl = hexToHsl(colorHex);
+    
+    if (colorSliders.hue) {
+        colorSliders.hue.value = Math.round(hsl.h);
+        colorValues.hue.textContent = Math.round(hsl.h) + '°';
+    }
+    if (colorSliders.saturation) {
+        colorSliders.saturation.value = Math.round(hsl.s);
+        colorValues.saturation.textContent = Math.round(hsl.s) + '%';
+    }
+    if (colorSliders.lightness) {
+        colorSliders.lightness.value = Math.round(hsl.l);
+        colorValues.lightness.textContent = Math.round(hsl.l) + '%';
+    }
+}
+
+if (colorSliders.hue) {
+    colorSliders.hue.addEventListener('input', (e) => {
+        colorValues.hue.textContent = e.target.value + '°';
+    });
+    colorSliders.saturation.addEventListener('input', (e) => {
+        colorValues.saturation.textContent = e.target.value + '%';
+    });
+    colorSliders.lightness.addEventListener('input', (e) => {
+        colorValues.lightness.textContent = e.target.value + '%';
+    });
+}
+
+document.getElementById('color-select')?.addEventListener('change', updateSliderValues);
+
+document.getElementById('apply-controls')?.addEventListener('click', () => {
+    const selectIndex = parseInt(document.getElementById('color-select').value) || 0;
+    const colors = getCurrentPalette();
+    const newHex = hslToHex(
+        parseFloat(colorSliders.hue.value),
+        parseFloat(colorSliders.saturation.value),
+        parseFloat(colorSliders.lightness.value)
+    );
+    colors[selectIndex] = newHex;
+    updatePaletteWithHistory(colors);
+    initializeColorSelect();
+    updateSliderValues();
+});
+
+// ========== IMAGE COLOR EXTRACTION ==========
+document.getElementById('image-upload')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+        const img = new Image();
+        img.onload = () => {
+            const colors = extractColorsFromImage(img);
+            updatePaletteWithHistory(colors);
+            
+            // Show preview
+            const preview = document.getElementById('image-preview');
+            preview.innerHTML = '';
+            const imgDisplay = document.createElement('img');
+            imgDisplay.src = event.target.result;
+            preview.appendChild(imgDisplay);
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+function extractColorsFromImage(img) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 50;
+    canvas.height = 50;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, 50, 50);
+    
+    const imageData = ctx.getImageData(0, 0, 50, 50).data;
+    const colorMap = {};
+    
+    for (let i = 0; i < imageData.length; i += 4) {
+        const r = imageData[i];
+        const g = imageData[i + 1];
+        const b = imageData[i + 2];
+        const hex = rgbToHex(r, g, b);
+        colorMap[hex] = (colorMap[hex] || 0) + 1;
+    }
+    
+    const sortedColors = Object.entries(colorMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([color]) => color);
+    
+    return sortedColors.length === 5 ? sortedColors : [...sortedColors, ...Array(5 - sortedColors.length).fill('#667eea')];
+}
+
+function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(x => {
+        const hex = x.toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+    }).join('').toUpperCase();
+}
+
+// ========== ACCESSIBILITY TOOLS ==========
+document.getElementById('check-contrast')?.addEventListener('click', checkContrast);
+
+function checkContrast() {
+    const fgColor = document.getElementById('fg-color').value;
+    const bgColor = document.getElementById('bg-color').value;
+    const resultDiv = document.getElementById('contrast-result');
+    
+    const contrast = calculateContrast(fgColor, bgColor);
+    let wcagAA = false, wcagAAA = false;
+    
+    if (contrast >= 4.5) wcagAA = true;
+    if (contrast >= 7) wcagAAA = true;
+    
+    resultDiv.innerHTML = `
+        <strong>Contrast Ratio: ${contrast.toFixed(2)}:1</strong><br>
+        WCAG AA (Normal): ${wcagAA ? '✅ PASS' : '❌ FAIL'}<br>
+        WCAG AAA (Enhanced): ${wcagAAA ? '✅ PASS' : '❌ FAIL'}
+    `;
+    resultDiv.classList.add('show');
+}
+
+function calculateContrast(color1, color2) {
+    const rgb1 = hexToRgb(color1);
+    const rgb2 = hexToRgb(color2);
+    
+    const l1 = getRelativeLuminance(rgb1);
+    const l2 = getRelativeLuminance(rgb2);
+    
+    const lighter = Math.max(l1, l2);
+    const darker = Math.min(l1, l2);
+    
+    return (lighter + 0.05) / (darker + 0.05);
+}
+
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : { r: 0, g: 0, b: 0 };
+}
+
+function getRelativeLuminance(rgb) {
+    const [rs, gs, bs] = [rgb.r, rgb.g, rgb.b].map(val => {
+        const v = val / 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+// Color blindness simulator
+document.getElementById('apply-colorblind')?.addEventListener('click', simulateColorBlindness);
+
+function simulateColorBlindness() {
+    const type = document.getElementById('colorblind-type').value;
+    const colors = getCurrentPalette();
+    const preview = document.getElementById('colorblind-preview');
+    preview.innerHTML = '';
+    
+    colors.forEach((color, i) => {
+        const simulated = applyColorBlindFilter(color, type);
+        const box = document.createElement('div');
+        box.className = 'colorblind-preview-box';
+        box.innerHTML = `
+            <div class="colorblind-preview-box-color" style="background-color: ${simulated};"></div>
+            <div class="colorblind-preview-box-label">${type}</div>
+        `;
+        preview.appendChild(box);
+    });
+}
+
+function applyColorBlindFilter(hex, type) {
+    const rgb = hexToRgb(hex);
+    let r = rgb.r / 255, g = rgb.g / 255, b = rgb.b / 255;
+    
+    const matrices = {
+        deuteranopia: [0.625, 0.375, 0, 0.7, 0.3, 0, 0, 0.3, 0.7],
+        protanopia: [0.567, 0.433, 0, 0.558, 0.442, 0, 0, 0.242, 0.758],
+        tritanopia: [0.95, 0.05, 0, 0, 0.433, 0.567, 0, 0.475, 0.525]
+    };
+    
+    const m = matrices[type] || matrices.deuteranopia;
+    const nr = r * m[0] + g * m[1] + b * m[2];
+    const ng = r * m[3] + g * m[4] + b * m[5];
+    const nb = r * m[6] + g * m[7] + b * m[8];
+    
+    return rgbToHex(Math.round(nr * 255), Math.round(ng * 255), Math.round(nb * 255));
+}
+
+// ========== ADVANCED EXPORT FORMATS ==========
+document.getElementById('export-css')?.addEventListener('click', () => exportAsCSS());
+document.getElementById('export-tailwind')?.addEventListener('click', () => exportAsTailwind());
+document.getElementById('export-scss')?.addEventListener('click', () => exportAsSCSS());
+document.getElementById('export-figma')?.addEventListener('click', () => exportAsFigma());
+
+function exportAsCSS() {
+    const colors = getCurrentPalette();
+    let css = ':root {\n';
+    colors.forEach((color, i) => {
+        css += `  --color-${i + 1}: ${color};\n`;
+    });
+    css += '}\n';
+    downloadFile(css, 'palette.css', 'text/css');
+}
+
+function exportAsTailwind() {
+    const colors = getCurrentPalette();
+    let config = 'module.exports = {\n  theme: {\n    extend: {\n      colors: {\n';
+    colors.forEach((color, i) => {
+        config += `        'palette-${i + 1}': '${color}',\n`;
+    });
+    config += '      }\n    }\n  }\n}\n';
+    downloadFile(config, 'tailwind.config.js', 'text/plain');
+}
+
+function exportAsSCSS() {
+    const colors = getCurrentPalette();
+    let scss = '// Color Palette\n';
+    colors.forEach((color, i) => {
+        scss += `$color-${i + 1}: ${color};\n`;
+    });
+    scss += '\n$colors: (\n';
+    colors.forEach((color, i) => {
+        scss += `  'palette-${i + 1}': ${color}${i < colors.length - 1 ? ',' : ''}\n`;
+    });
+    scss += ');\n';
+    downloadFile(scss, 'palette.scss', 'text/plain');
+}
+
+function exportAsFigma() {
+    const colors = getCurrentPalette();
+    const figmaJSON = {
+        colors: colors.map((color, i) => ({
+            name: `Color ${i + 1}`,
+            hex: color,
+            rgb: hexToRgb(color)
+        }))
+    };
+    downloadFile(JSON.stringify(figmaJSON, null, 2), 'figma-colors.json', 'application/json');
+}
+
+function downloadFile(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// ========== PALETTE MANAGEMENT ==========
+let managedPalettes = JSON.parse(localStorage.getItem('managedPalettes')) || [];
+
+document.getElementById('palette-search')?.addEventListener('input', (e) => {
+    filterAndDisplayPalettes(e.target.value, document.getElementById('filter-favorites').value);
+});
+
+document.getElementById('filter-favorites')?.addEventListener('change', (e) => {
+    filterAndDisplayPalettes(document.getElementById('palette-search').value, e.target.value);
+});
+
+function filterAndDisplayPalettes(search = '', filterType = 'all') {
+    let filtered = managedPalettes;
+    
+    if (search) {
+        filtered = filtered.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+    }
+    
+    if (filterType === 'favorites') {
+        filtered = filtered.filter(p => p.isFavorite);
+    }
+    
+    displayManagedPalettes(filtered);
+}
+
+function displayManagedPalettes(palettes = managedPalettes) {
+    const container = document.getElementById('managed-palettes');
+    container.innerHTML = '';
+    
+    if (palettes.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No palettes found</p>';
+        return;
+    }
+    
+    palettes.forEach(palette => {
+        const item = document.createElement('div');
+        item.className = 'palette-item';
+        
+        const colorsHtml = palette.colors.map(c => 
+            `<div class="palette-color-swatch" style="background-color: ${c}; flex: 1;"></div>`
+        ).join('');
+        
+        item.innerHTML = `
+            <div class="palette-colors">${colorsHtml}</div>
+            <div style="font-weight: 600; color: var(--neon-cyan); margin-bottom: 0.5rem;">${palette.name}</div>
+            <div class="palette-item-actions">
+                <button onclick="loadManagedPalette(${palette.id})">Load</button>
+                <button onclick="toggleFavorite(${palette.id})">${palette.isFavorite ? '⭐ Favorited' : '☆ Favorite'}</button>
+                <button onclick="deleteManagedPalette(${palette.id})">Delete</button>
+            </div>
+        `;
+        container.appendChild(item);
+    });
+}
+
+function loadManagedPalette(id) {
+    const palette = managedPalettes.find(p => p.id === id);
+    if (palette) {
+        updatePaletteWithHistory(palette.colors);
+    }
+}
+
+function toggleFavorite(id) {
+    const palette = managedPalettes.find(p => p.id === id);
+    if (palette) {
+        palette.isFavorite = !palette.isFavorite;
+        localStorage.setItem('managedPalettes', JSON.stringify(managedPalettes));
+        displayManagedPalettes();
+    }
+}
+
+function deleteManagedPalette(id) {
+    managedPalettes = managedPalettes.filter(p => p.id !== id);
+    localStorage.setItem('managedPalettes', JSON.stringify(managedPalettes));
+    displayManagedPalettes();
+}
+
+// ========== COLOR PREVIEW MOCKUPS ==========
+function updateMockups() {
+    const colors = getCurrentPalette();
+    
+    // Header mockup
+    const headerMockup = document.getElementById('mockup-header');
+    if (headerMockup) {
+        headerMockup.innerHTML = colors.slice(0, 3).map((c, i) => 
+            `<div class="mockup-header-item" style="background-color: ${c}; flex: 1;"></div>`
+        ).join('');
+    }
+    
+    // Button mockups
+    const buttonMockup = document.getElementById('mockup-buttons');
+    if (buttonMockup) {
+        buttonMockup.innerHTML = colors.map((c, i) => 
+            `<div class="mockup-button-demo" style="background-color: ${c}; color: ${getContrastColor(c)};">Button ${i + 1}</div>`
+        ).join('');
+    }
+    
+    // Gradient mockup
+    const gradientMockup = document.getElementById('mockup-gradient');
+    if (gradientMockup) {
+        const gradient = `linear-gradient(135deg, ${colors[0]}, ${colors[2]}, ${colors[4]})`;
+        gradientMockup.style.background = gradient;
+    }
+}
+
+function getContrastColor(hex) {
+    const rgb = hexToRgb(hex);
+    const luminance = getRelativeLuminance(rgb);
+    return luminance > 0.5 ? '#000000' : '#ffffff';
+}
+
+// Initialize all features on page load
+document.addEventListener('DOMContentLoaded', () => {
+    initializeColorSelect();
+    updateSliderValues();
+    displayManagedPalettes();
+    updateMockups();
+    updateUndoRedoButtons();
+    
+    // Update mockups whenever palette changes
+    const observer = new MutationObserver(updateMockups);
+    observer.observe(mainPalette, { childList: true, subtree: true });
+});

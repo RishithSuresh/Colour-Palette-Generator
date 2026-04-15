@@ -185,6 +185,133 @@
                 <i class="fas fa-sun"></i> Adjust Brightness
             </button>
         </div>
+
+        <!-- Advanced Color Controls -->
+        <div class="section">
+            <h3><i class="fas fa-sliders-h"></i> Advanced Color Controls</h3>
+            <div class="color-controls">
+                <div class="control-group">
+                    <label for="color-select">Select Color:</label>
+                    <select id="color-select" class="mood-select"></select>
+                </div>
+                <div class="slider-group">
+                    <div class="slider-control">
+                        <label>Hue: <span id="hue-value">0°</span></label>
+                        <input type="range" id="hue-slider" min="0" max="360" value="0" class="color-slider">
+                    </div>
+                    <div class="slider-control">
+                        <label>Saturation: <span id="saturation-value">100%</span></label>
+                        <input type="range" id="saturation-slider" min="0" max="100" value="100" class="color-slider">
+                    </div>
+                    <div class="slider-control">
+                        <label>Lightness: <span id="lightness-value">50%</span></label>
+                        <input type="range" id="lightness-slider" min="0" max="100" value="50" class="color-slider">
+                    </div>
+                </div>
+                <button id="apply-controls" class="btn">Apply Changes</button>
+            </div>
+        </div>
+
+        <!-- Image Color Extraction -->
+        <div class="section">
+            <h3><i class="fas fa-image"></i> Extract Palette from Image</h3>
+            <div class="image-upload">
+                <label for="image-upload" class="upload-btn">
+                    <i class="fas fa-cloud-upload-alt"></i> Upload Image
+                </label>
+                <input type="file" id="image-upload" accept="image/*" class="file-input">
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
+                    Upload an image to extract dominant colors automatically
+                </p>
+                <div id="image-preview" class="image-preview"></div>
+            </div>
+        </div>
+
+        <!-- Accessibility Tools -->
+        <div class="section">
+            <h3><i class="fas fa-universal-access"></i> Accessibility Tools</h3>
+            <div class="accessibility-tools">
+                <div class="contrast-checker">
+                    <div class="color-pair">
+                        <label>Foreground:</label>
+                        <input type="color" id="fg-color" value="#000000" class="color-input">
+                    </div>
+                    <div class="color-pair">
+                        <label>Background:</label>
+                        <input type="color" id="bg-color" value="#FFFFFF" class="color-input">
+                    </div>
+                    <button id="check-contrast" class="btn">Check Contrast</button>
+                </div>
+                <div id="contrast-result"></div>
+                <div class="colorblind-simulator">
+                    <label for="colorblind-type">Color Vision Deficiency:</label>
+                    <select id="colorblind-type" class="mood-select">
+                        <option value="normal">Normal Vision</option>
+                        <option value="deuteranopia">Deuteranopia (Red-Green)</option>
+                        <option value="protanopia">Protanopia (Red-Green)</option>
+                        <option value="tritanopia">Tritanopia (Blue-Yellow)</option>
+                    </select>
+                    <button id="apply-colorblind" class="btn">Simulate</button>
+                </div>
+                <div id="colorblind-preview"></div>
+            </div>
+        </div>
+
+        <!-- Advanced Export Formats -->
+        <div class="section">
+            <h3><i class="fas fa-code"></i> Advanced Export Formats</h3>
+            <div class="export-formats">
+                <button id="export-css" class="btn">📄 Export as CSS</button>
+                <button id="export-tailwind" class="btn">🎨 Export as Tailwind</button>
+                <button id="export-scss" class="btn">⚙️ Export as SCSS</button>
+                <button id="export-figma" class="btn">🎯 Export as Figma JSON</button>
+            </div>
+        </div>
+
+        <!-- Palette Management -->
+        <div class="section">
+            <h3><i class="fas fa-folder-open"></i> Palette Management</h3>
+            <div class="palette-management">
+                <div class="search-bar">
+                    <input type="text" id="palette-search" placeholder="Search palettes..." class="mood-select">
+                    <select id="filter-favorites" class="mood-select">
+                        <option value="all">All Palettes</option>
+                        <option value="favorites">Favorites Only</option>
+                    </select>
+                </div>
+                <div id="managed-palettes" class="managed-palettes-list"></div>
+            </div>
+        </div>
+
+        <!-- Color Preview Mockups -->
+        <div class="section">
+            <h3><i class="fas fa-eye"></i> Color Preview Mockups</h3>
+            <div class="mockup-container">
+                <div class="mockup-card">
+                    <h4>Website Header</h4>
+                    <div id="mockup-header" class="mockup-header"></div>
+                </div>
+                <div class="mockup-card">
+                    <h4>UI Button Set</h4>
+                    <div id="mockup-buttons" class="mockup-buttons"></div>
+                </div>
+                <div class="mockup-card">
+                    <h4>Gradient Background</h4>
+                    <div id="mockup-gradient" class="mockup-gradient"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Undo/Redo & Edit Controls -->
+        <div class="section">
+            <h3><i class="fas fa-history"></i> Edit Controls</h3>
+            <div class="edit-controls">
+                <button id="undo-btn" class="btn"><i class="fas fa-undo"></i> Undo</button>
+                <button id="redo-btn" class="btn"><i class="fas fa-redo"></i> Redo</button>
+                <button id="reset-palette" class="btn"><i class="fas fa-sync"></i> Reset Palette</button>
+            </div>
+            <div id="undo-indicator" style="margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem;"></div>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
